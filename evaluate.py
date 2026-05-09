@@ -58,7 +58,7 @@ def run_episode_greedy(env):
     return steps, total_reward
 
 
-def evaluate(model_name="ppo_grid2op_v2", n_episodes=5):
+def evaluate(model_name="ppo_grid2op_v3", n_episodes=5):
     env = make_grid_env()
     gym_env = make_gym_env(env)
     model = PPO.load(model_name, env=gym_env)

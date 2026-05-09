@@ -23,7 +23,7 @@ NODE_POS = {
 def load_model():
     env = make_grid_env()
     gym_env = make_gym_env(env)
-    model = PPO.load("ppo_grid2op_v2", env=gym_env)
+    model = PPO.load("ppo_grid2op_v3", env=gym_env)
     return model
 
 def draw_topology(obs, env, title, color_title):
@@ -123,7 +123,7 @@ with st.sidebar:
     run_button = st.button("▶️ Запустити симуляцію", type="primary",
                            use_container_width=True)
 
-tab1, tab2 = st.tabs(["🔬 Симуляція", "📊 Порівняння сценаріїв"])
+tab1, tab2, tab3 = st.tabs(["🔬 Симуляція", "📊 Порівняння сценаріїв", "🏗️ Архітектура"])
 
 with tab1:
     if run_button:
@@ -403,7 +403,7 @@ with tab2:
 
             env_ag  = make_grid_env()
             gym_ag  = make_gym_env(env_ag)
-            model_s = PPO.load("ppo_grid2op_v2", env=gym_ag)
+            model_s = PPO.load("ppo_grid2op_v3", env=gym_ag)
             obs_gym, _ = gym_ag.reset(options={"time serie id": sid})
             done, steps_ag = False, 0
             while not done and steps_ag < 300:
@@ -489,3 +489,98 @@ with tab2:
     else:
         st.info("Натисни кнопку щоб запустити порівняння всіх 20 сценаріїв. "
                 "Займе ~2 хвилини.")
+        
+with tab3:
+    st.subheader("🏗️ Архітектура системи")
+
+    col_l, col_r = st.columns(2)
+
+    with col_l:
+        st.markdown("### 👁️ Observation Space")
+        st.markdown("Агент отримує вектор стану розміром **114 параметрів**:")
+        obs_data = {
+            "Параметр": ["rho", "p_or", "gen_p", "load_p", "topo_vect"],
+            "Опис": [
+                "Завантаженість ліній (% від максимуму)",
+                "Активна потужність на початку лінії",
+                "Генерація активної потужності",
+                "Споживання навантажень",
+                "Топологічний вектор вузлів"
+            ],
+            "Розмір": [20, 20, 6, 11, 57],
+        }
+        st.dataframe(obs_data, use_container_width=True, hide_index=True)
+
+        st.markdown("### ⚡ Action Space")
+        st.markdown("Агент може виконати **101 дискретну дію**:")
+        st.markdown("""
+        - **1** дія — нічого не робити (do nothing)
+        - **40** дій — підключити/відключити кожну з 20 ліній
+        - **60** дій — перемикання шин у підстанціях
+        """)
+
+    with col_r:
+        st.markdown("### 🎯 Reward Function")
+        st.latex(r"R(t) = \alpha \cdot S(t) - \beta \cdot O(t) - \gamma \cdot L(t) + \delta \cdot B(t)")
+
+        reward_data = {
+            "Компонент": ["S(t)", "O(t)", "L(t)", "B(t)"],
+            "Назва": [
+                "Стабільність",
+                "Штраф перевантаження",
+                "Штраф блекауту",
+                "Бонус з'єднаності"
+            ],
+            "Коефіцієнт": ["α = 1.0", "β = 2.0", "γ = 100.0", "δ = 0.5"],
+            "Опис": [
+                "+1 за кожен крок без аварії",
+                "-2 × сума перевантажень > 90%",
+                "-100 при блекауті",
+                "+0.5 × частка активних ліній"
+            ]
+        }
+        st.dataframe(reward_data, use_container_width=True, hide_index=True)
+
+        st.markdown("### 🧠 Алгоритм PPO")
+        st.markdown("""
+        **Proximal Policy Optimization (PPO)** обраний через:
+        - Стабільність навчання на дискретних діях
+        - Ефективність у задачах керування
+        - Кліпування градієнтів запобігає деградації політики
+        """)
+
+        ppo_params = {
+            "Гіперпараметр": [
+                "learning_rate", "n_steps", "batch_size",
+                "n_epochs", "ent_coef", "clip_range", "gamma"
+            ],
+            "Значення": [
+                "3×10⁻⁴", "2048", "64", "10", "0.01", "0.2", "0.99"
+            ],
+            "Призначення": [
+                "Швидкість навчання",
+                "Кроків до оновлення",
+                "Розмір міні-батчу",
+                "Епох на оновлення",
+                "Коефіцієнт ентропії",
+                "Діапазон кліпування",
+                "Дисконт майбутніх нагород"
+            ]
+        }
+        st.dataframe(ppo_params, use_container_width=True, hide_index=True)
+
+    st.divider()
+    st.markdown("### 📈 Порівняння версій моделі")
+    versions_data = {
+        "Версія": ["v1 (100k кроків)", "v2 (200k кроків)", "v3 (300k + власна reward)"],
+        "Reward Function": [
+            "L2RPNReward (стандартна)",
+            "L2RPNReward (стандартна)",
+            "CustomReward (власна)"
+        ],
+        "Сер. кроків": [192, 1162, 2052],
+        "Критичний сценарій": ["~13x", "~518x", "1661x"],
+    }
+    st.dataframe(versions_data, use_container_width=True, hide_index=True)
+
+    st.success("✅ v3 з власною reward function показує найкращі результати")

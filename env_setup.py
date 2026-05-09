@@ -3,10 +3,11 @@ import grid2op
 from lightsim2grid import LightSimBackend
 from grid2op.Parameters import Parameters
 from grid2op.gym_compat import GymEnv, BoxGymObsSpace, DiscreteActSpace
+from reward import CustomReward
 
 
 def make_grid_env(scenario_id=None):
-    """Створює grid2op середовище з жорсткими параметрами"""
+    """Створює grid2op середовище з власною функцією винагороди"""
     param = Parameters()
     param.NO_OVERFLOW_DISCONNECTION = False
     param.NB_TIMESTEP_OVERFLOW_ALLOWED = 2
@@ -14,7 +15,8 @@ def make_grid_env(scenario_id=None):
     env = grid2op.make(
         "l2rpn_case14_sandbox",
         backend=LightSimBackend(),
-        param=param
+        param=param,
+        reward_class=CustomReward  # власна reward function
     )
 
     if scenario_id is not None:
