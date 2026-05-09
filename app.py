@@ -142,7 +142,7 @@ with st.sidebar:
     run_button = st.button("▶️ Запустити симуляцію", type="primary",
                            use_container_width=True)
 
-tab1, tab2, tab3 = st.tabs(["🔬 Симуляція", "📊 Порівняння сценаріїв", "🏗️ Архітектура"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔬 Симуляція", "📊 Порівняння сценаріїв", "🏗️ Архітектура", "🕹️ Ручне керування"])
 
 with tab1:
     if run_button:
@@ -837,3 +837,188 @@ PPO використовує дві окремі нейромережі:
         st.success("""**🔄 Разом**
         
 **DRL = Deep + RL**: нейромережа апроксимує оптимальну політику π*(s) яку неможливо знайти аналітично через розмір простору станів 114.""")
+        
+with tab4:
+    st.subheader("🕹️ Ручне керування мережею")
+    st.markdown("Керуй мережею самостійно і порівняй результат з PPO агентом")
+
+    col_ctrl_l, col_ctrl_r = st.columns([1, 2])
+
+    with col_ctrl_l:
+        st.markdown("### ⚙️ Налаштування")
+
+        manual_scenario = st.selectbox(
+            "Сценарій",
+            options=list(scenario_labels.keys()),
+            format_func=lambda x: scenario_labels[x],
+            index=3,
+            key="manual_scenario"
+        )
+
+        manual_steps = st.slider(
+            "Кроків симуляції", 10, 100, 30,
+            key="manual_steps"
+        )
+
+        st.markdown("### 🔌 Вибери активні лінії")
+        st.markdown("*Зніми галочку щоб відключити лінію*")
+
+        # Ініціалізуємо стан ліній
+        if "line_states" not in st.session_state:
+            st.session_state.line_states = [True] * 20
+
+        line_cols = st.columns(2)
+        for i in range(20):
+            col_idx = i % 2
+            with line_cols[col_idx]:
+                st.session_state.line_states[i] = st.checkbox(
+                    f"Лінія {i}",
+                    value=st.session_state.line_states[i],
+                    key=f"line_{i}"
+                )
+
+        run_manual = st.button(
+            "▶️ Запустити ручну симуляцію",
+            type="primary",
+            use_container_width=True,
+            key="run_manual"
+        )
+
+    with col_ctrl_r:
+        if run_manual:
+            with st.spinner("Симуляція..."):
+                # ── РУЧНЕ КЕРУВАННЯ ────────────────────
+                env_man = make_grid_env()
+                env_ppo = make_grid_env()
+                gym_man = make_gym_env(env_ppo)
+                model_man = load_model()
+
+                obs_man = env_man.reset(
+                    options={"time serie id": manual_scenario}
+                )
+                done_man = False
+                steps_man = 0
+                rho_man = []
+
+                # Застосовуємо вибрані відключення
+                for lid, active in enumerate(st.session_state.line_states):
+                    if not active:
+                        obs_man, _, done_man, _ = env_man.step(
+                            env_man.action_space(
+                                {"set_line_status": [(lid, -1)]}
+                            )
+                        )
+                        if done_man:
+                            break
+
+                # Симулюємо ручний режим
+                while not done_man and steps_man < manual_steps:
+                    obs_man, _, done_man, _ = env_man.step(
+                        env_man.action_space({})
+                    )
+                    steps_man += 1
+                    active_lines = obs_man.rho[obs_man.line_status]
+                    rho_man.append(
+                        np.max(active_lines) if len(active_lines) > 0 else 0.0
+                    )
+
+                # ── PPO на тому самому сценарії ────────
+                obs_ppo, _ = gym_man.reset(
+                    options={"time serie id": manual_scenario}
+                )
+                obs_ppo_g2op = env_ppo.current_obs
+                done_ppo = False
+                steps_ppo = 0
+                rho_ppo = []
+
+                while not done_ppo and steps_ppo < manual_steps:
+                    act, _ = model_man.predict(obs_ppo, deterministic=True)
+                    obs_ppo, _, term, trunc, _ = gym_man.step(act)
+                    obs_ppo_g2op = env_ppo.current_obs
+                    done_ppo = term or trunc
+                    steps_ppo += 1
+                    active_lines = obs_ppo_g2op.rho[obs_ppo_g2op.line_status]
+                    rho_ppo.append(
+                        np.max(active_lines) if len(active_lines) > 0 else 0.0
+                    )
+
+            # ── РЕЗУЛЬТАТИ ─────────────────────────────
+            st.markdown("### 📊 Результат")
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Твій результат", f"{steps_man} кроків")
+            r2.metric("PPO агент", f"{steps_ppo} кроків")
+
+            if steps_ppo > steps_man:
+                diff = steps_ppo - steps_man
+                r3.metric("Переможець", "🤖 PPO",
+                          delta=f"+{diff} кроків")
+            elif steps_man > steps_ppo:
+                diff = steps_man - steps_ppo
+                r3.metric("Переможець", "👤 Ти",
+                          delta=f"+{diff} кроків")
+            else:
+                r3.metric("Переможець", "🤝 Нічия", delta="0 кроків")
+
+            # ── ГРАФІК ─────────────────────────────────
+            st.markdown("### 📈 Завантаженість ліній")
+            fig_man, ax_man = plt.subplots(figsize=(8, 3))
+            fig_man.patch.set_facecolor('#1a1a2e')
+            ax_man.set_facecolor('#1a1a2e')
+
+            if rho_man:
+                ax_man.plot(rho_man, color='#EF5350', lw=2,
+                           label='Твоє керування')
+            if rho_ppo:
+                ax_man.plot(rho_ppo, color='#42A5F5', lw=2,
+                           label='PPO агент')
+
+            ax_man.axhline(y=1.0, color='#FF5722', lw=1.5,
+                          ls='--', alpha=0.7, label='Межа (100%)')
+            ax_man.set_xlabel('Крок', color='white')
+            ax_man.set_ylabel('Завантаженість', color='white')
+            ax_man.tick_params(colors='white')
+            ax_man.legend(facecolor='#333', labelcolor='white')
+            ax_man.grid(True, alpha=0.2)
+            for sp in ax_man.spines.values():
+                sp.set_color('#444')
+            plt.tight_layout()
+            st.pyplot(fig_man)
+
+            # ── ТОПОЛОГІЯ ──────────────────────────────
+            st.markdown("### 🗺️ Топологія")
+            col_m1, col_m2 = st.columns(2)
+
+            with col_m1:
+                fig_m1 = draw_topology(
+                    obs_man, env_man,
+                    "Твоє керування", '#EF5350'
+                )
+                if done_man:
+                    st.error("⚡ БЛЕКАУТ!")
+                else:
+                    st.info(f"👤 Ти: {steps_man} кроків")
+                st.pyplot(fig_m1)
+
+            with col_m2:
+                fig_m2 = draw_topology(
+                    obs_ppo_g2op, env_ppo,
+                    "PPO агент", '#4CAF50'
+                )
+                if done_ppo:
+                    st.warning("⚠️ PPO не зміг утримати")
+                else:
+                    st.success(f"🤖 PPO: {steps_ppo} кроків")
+                st.pyplot(fig_m2)
+
+        else:
+            st.info("👈 Вибери які лінії відключити і натисни **Запустити**")
+            st.markdown("""
+**Як користуватись:**
+1. Вибери сценарій навантаження
+2. Зніми галочки з ліній які хочеш відключити
+3. Натисни "Запустити ручну симуляцію"
+4. Порівняй свій результат з PPO агентом
+
+**Підказка:** спробуй відключити Лінію 17 і подивись 
+що станеться — це найнавантаженіша лінія в мережі!
+            """)
