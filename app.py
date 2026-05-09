@@ -113,10 +113,29 @@ with st.sidebar:
     )
 
     st.divider()
-    st.subheader("🔌 Відключити лінію вручну")
+    st.subheader("⚡ Сценарій аварії")
+    
+    attack_type = st.radio(
+        "Тип аварії",
+        ["Без аварії", "Одна лінія", "Каскадна аварія (N-1-1)"],
+        index=0
+    )
+
     line_names = [f"Лінія {i}" for i in range(20)]
-    disabled_line = st.selectbox("Вибери лінію для відключення",
-                                  ["(не відключати)"] + line_names)
+    
+    disabled_line = "(не відключати)"
+    disabled_lines_cascade = []
+
+    if attack_type == "Одна лінія":
+        disabled_line = st.selectbox(
+            "Вибери лінію для відключення",
+            ["(не відключати)"] + line_names
+        )
+    elif attack_type == "Каскадна аварія (N-1-1)":
+        st.markdown("*N-1-1: дві лінії відключаються одна за одною*")
+        line1 = st.selectbox("Перша лінія (відключається одразу)", line_names, index=17)
+        line2 = st.selectbox("Друга лінія (відключається через 3 кроки)", line_names, index=4)
+        disabled_lines_cascade = [int(line1.split(" ")[1]), int(line2.split(" ")[1])]
 
     st.divider()
     max_steps = st.slider("Кроків симуляції", 20, 200, 100, step=10)
@@ -135,21 +154,38 @@ with tab1:
             env_grd = make_grid_env()
             gym_env = make_gym_env(env_ag)
 
+            # ── Визначаємо тип аварії ──────────────────
             manual_off = None
-            if disabled_line != "(не відключати)":
+            if attack_type == "Одна лінія" and disabled_line != "(не відключати)":
                 manual_off = int(disabled_line.split(" ")[1])
 
             # ── БЕЗ АГЕНТА ────────────────────────────
             steps_no, rho_history_no = [], []
             obs_no = env_no.reset(options={"time serie id": scenario})
             done_no = False
-            if manual_off is not None:
+            cascade_step_no = 0
+
+            if attack_type == "Каскадна аварія (N-1-1)" and disabled_lines_cascade:
+                obs_no, _, done_no, _ = env_no.step(
+                    env_no.action_space({"set_line_status": [(disabled_lines_cascade[0], -1)]})
+                )
+            elif manual_off is not None:
                 obs_no, _, done_no, _ = env_no.step(
                     env_no.action_space({"set_line_status": [(manual_off, -1)]})
                 )
+
             for _ in range(max_steps):
                 if done_no: break
-                obs_no, _, done_no, _ = env_no.step(env_no.action_space({}))
+                if (attack_type == "Каскадна аварія (N-1-1)"
+                        and disabled_lines_cascade
+                        and cascade_step_no == 3
+                        and obs_no.line_status[disabled_lines_cascade[1]]):
+                    obs_no, _, done_no, _ = env_no.step(
+                        env_no.action_space({"set_line_status": [(disabled_lines_cascade[1], -1)]})
+                    )
+                else:
+                    obs_no, _, done_no, _ = env_no.step(env_no.action_space({}))
+                cascade_step_no += 1
                 steps_no.append(len(steps_no))
                 active = obs_no.rho[obs_no.line_status]
                 rho_history_no.append(np.max(active) if len(active) > 0 else 0.0)
@@ -158,20 +194,48 @@ with tab1:
             steps_ag, rho_history_ag = [], []
             actions_count_ag = 0
             event_log = []
+            cascade_step_ag = 0
+
             obs_gym, _ = gym_env.reset(options={"time serie id": scenario})
             obs_ag = env_ag.current_obs
             done_ag = False
-            if manual_off is not None:
+
+            if attack_type == "Каскадна аварія (N-1-1)" and disabled_lines_cascade:
+                obs_ag, _, done_ag, _ = env_ag.step(
+                    env_ag.action_space({"set_line_status": [(disabled_lines_cascade[0], -1)]})
+                )
+            elif manual_off is not None:
                 obs_ag, _, done_ag, _ = env_ag.step(
                     env_ag.action_space({"set_line_status": [(manual_off, -1)]})
                 )
+
             prev_status_ag = obs_ag.line_status.copy()
+
             for _ in range(max_steps):
                 if done_ag: break
-                act, _ = model.predict(obs_gym, deterministic=True)
-                obs_gym, _, term, trunc, _ = gym_env.step(act)
-                obs_ag = env_ag.current_obs
-                done_ag = term or trunc
+
+                # Каскадне відключення другої лінії через 3 кроки
+                if (attack_type == "Каскадна аварія (N-1-1)"
+                        and disabled_lines_cascade
+                        and cascade_step_ag == 3
+                        and obs_ag.line_status[disabled_lines_cascade[1]]):
+                    obs_ag, _, done_ag, _ = env_ag.step(
+                        env_ag.action_space({"set_line_status": [(disabled_lines_cascade[1], -1)]})
+                    )
+                    # Синхронізуємо gym_env
+                    obs_gym, _, term, trunc, _ = gym_env.step(
+                        gym_env.action_space.sample() * 0
+                    )
+                    obs_ag = env_ag.current_obs
+                    done_ag = term or trunc
+                else:
+                    act, _ = model.predict(obs_gym, deterministic=True)
+                    obs_gym, _, term, trunc, _ = gym_env.step(act)
+                    obs_ag = env_ag.current_obs
+                    done_ag = term or trunc
+
+                cascade_step_ag += 1
+
                 changed = np.where(obs_ag.line_status != prev_status_ag)[0]
                 for line_id in changed:
                     status = "✅ підключено" if obs_ag.line_status[line_id] else "❌ відключено"
@@ -192,25 +256,45 @@ with tab1:
             # ── GREEDY АГЕНТ ───────────────────────────
             steps_grd, rho_history_grd = [], []
             actions_count_grd = 0
+            cascade_step_grd = 0
+
             obs_grd = env_grd.reset(options={"time serie id": scenario})
             done_grd = False
-            if manual_off is not None:
+
+            if attack_type == "Каскадна аварія (N-1-1)" and disabled_lines_cascade:
+                obs_grd, _, done_grd, _ = env_grd.step(
+                    env_grd.action_space({"set_line_status": [(disabled_lines_cascade[0], -1)]})
+                )
+            elif manual_off is not None:
                 obs_grd, _, done_grd, _ = env_grd.step(
                     env_grd.action_space({"set_line_status": [(manual_off, -1)]})
                 )
+
             prev_status_grd = obs_grd.line_status.copy()
+
             for _ in range(max_steps):
                 if done_grd: break
-                rho = obs_grd.rho.copy()
-                rho[~obs_grd.line_status] = 0
-                if np.max(rho) > 0.9:
-                    line_off = int(np.argmax(rho))
-                    action_grd = env_grd.action_space(
-                        {"set_line_status": [(line_off, -1)]}
+
+                if (attack_type == "Каскадна аварія (N-1-1)"
+                        and disabled_lines_cascade
+                        and cascade_step_grd == 3
+                        and obs_grd.line_status[disabled_lines_cascade[1]]):
+                    obs_grd, _, done_grd, _ = env_grd.step(
+                        env_grd.action_space({"set_line_status": [(disabled_lines_cascade[1], -1)]})
                     )
                 else:
-                    action_grd = env_grd.action_space({})
-                obs_grd, _, done_grd, _ = env_grd.step(action_grd)
+                    rho = obs_grd.rho.copy()
+                    rho[~obs_grd.line_status] = 0
+                    if np.max(rho) > 0.9:
+                        line_off = int(np.argmax(rho))
+                        action_grd = env_grd.action_space(
+                            {"set_line_status": [(line_off, -1)]}
+                        )
+                    else:
+                        action_grd = env_grd.action_space({})
+                    obs_grd, _, done_grd, _ = env_grd.step(action_grd)
+
+                cascade_step_grd += 1
                 if not np.array_equal(obs_grd.line_status, prev_status_grd):
                     actions_count_grd += 1
                 prev_status_grd = obs_grd.line_status.copy()
@@ -223,7 +307,13 @@ with tab1:
         survived_grd = len(steps_grd)
         survived_ag  = len(steps_ag)
 
-        st.subheader("📊 Результати симуляції")
+        attack_label = {
+            "Без аварії": "штатний режим",
+            "Одна лінія": f"відключення {disabled_line}",
+            "Каскадна аварія (N-1-1)": f"каскад: Лінія {disabled_lines_cascade[0]} → Лінія {disabled_lines_cascade[1]}" if disabled_lines_cascade else ""
+        }.get(attack_type, "")
+
+        st.subheader(f"📊 Результати симуляції — {attack_label}")
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Без агента", f"{survived_no} кроків")
         col2.metric("Greedy агент", f"{survived_grd} кроків",
@@ -384,7 +474,7 @@ with tab1:
     else:
         st.info("👈 Вибери сценарій у бічній панелі та натисни **Запустити симуляцію**")
         st.image("topology.png", caption="Приклад топології IEEE 14-bus")
-
+        
 with tab2:
     st.subheader("📊 Порівняння всіх 20 сценаріїв")
 
