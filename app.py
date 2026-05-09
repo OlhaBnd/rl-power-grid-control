@@ -651,3 +651,99 @@ $$\\min_{E' \\subseteq E} \\sum_{e \\in E'} \\max(\\rho_e - 0.9, 0)$$
         st.error("**3. Зміна топології**\n\nСередовище застосовує дію: змінює підмножину активних ребер E' і перераховує потокорозподіл")
     with col_alg4:
         st.success("**4. Отримання винагороди**\n\nАгент отримує R(t) = α·S - β·O - γ·L + δ·B і переходить до кроку t+1")
+
+    st.divider()
+    st.markdown("### 🧠 Архітектура нейромережі PPO")
+
+    col_nn_l, col_nn_r = st.columns([1, 1])
+
+    with col_nn_l:
+        st.markdown("""
+**MlpPolicy — багатошаровий перцептрон:**
+
+PPO використовує дві окремі нейромережі:
+
+**1. Actor (Політика π)** — обирає дії:
+- Вхід: вектор стану s(t) розміром **114**
+- Прихований шар 1: **64 нейрони** + tanh
+- Прихований шар 2: **64 нейрони** + tanh  
+- Вихід: розподіл імовірностей по **101 дії** (softmax)
+
+**2. Critic (Оцінка V)** — оцінює стан:
+- Вхід: вектор стану s(t) розміром **114**
+- Прихований шар 1: **64 нейрони** + tanh
+- Прихований шар 2: **64 нейрони** + tanh
+- Вихід: скалярна оцінка **V(s)** (очікувана сумарна винагорода)
+
+**Загальна кількість параметрів:**
+- Actor: 114×64 + 64×64 + 64×101 ≈ **18,000 параметрів**
+- Critic: 114×64 + 64×64 + 64×1 ≈ **11,700 параметрів**
+        """)
+
+    with col_nn_r:
+        # Малюємо архітектуру нейромережі
+        fig_nn, ax_nn = plt.subplots(figsize=(7, 6))
+        fig_nn.patch.set_facecolor('#1a1a2e')
+        ax_nn.set_facecolor('#1a1a2e')
+
+        def draw_layer(ax, x, nodes, label, color, max_show=6):
+            total = nodes
+            show = min(nodes, max_show)
+            spacing = 1.0 / (show + 1)
+            for i in range(show):
+                y = (i + 1) * spacing
+                circle = plt.Circle((x, y), 0.03, color=color,
+                                   zorder=5, ec='white', lw=0.5)
+                ax.add_patch(circle)
+            if total > max_show:
+                ax.text(x, spacing * (show//2 + 1) - 0.05, '...',
+                       color='white', ha='center', fontsize=10)
+            ax.text(x, -0.05, label, color='white',
+                   ha='center', fontsize=7, fontweight='bold')
+            ax.text(x, -0.10, f'({total})', color='#aaa',
+                   ha='center', fontsize=6)
+            return [(x, (i+1)*spacing) for i in range(show)]
+
+        # Малюємо шари Actor
+        layers = [
+            (0.1, 114, 'Вхід\nСтан', '#64B5F6'),
+            (0.35, 64, 'Шар 1\ntanh', '#42A5F5'),
+            (0.6, 64, 'Шар 2\ntanh', '#1E88E5'),
+            (0.85, 101, 'Вихід\nДії', '#4CAF50'),
+        ]
+
+        all_pos = []
+        for x, n, label, color in layers:
+            pos = draw_layer(ax_nn, x, n, label, color)
+            all_pos.append(pos)
+
+        # З'єднуємо шари лініями
+        for i in range(len(all_pos)-1):
+            for p1 in all_pos[i][:4]:
+                for p2 in all_pos[i+1][:4]:
+                    ax_nn.plot([p1[0], p2[0]], [p1[1], p2[1]],
+                              color='#444', lw=0.3, alpha=0.5, zorder=1)
+
+        ax_nn.set_title('Actor Network (Політика π)',
+                       color='white', fontsize=10, fontweight='bold')
+        ax_nn.set_xlim(0, 1); ax_nn.set_ylim(-0.15, 1.05)
+        ax_nn.axis('off')
+        plt.tight_layout()
+        st.pyplot(fig_nn)
+
+    st.divider()
+    st.markdown("### 📚 Чому це 'глибоке' навчання?")
+
+    col_d1, col_d2, col_d3 = st.columns(3)
+    with col_d1:
+        st.info("""**🔢 Глибина**
+        
+Мережа має **2 приховані шари** — це і є "глибока" архітектура на відміну від класичного Q-learning з таблицею.""")
+    with col_d2:
+        st.warning("""**🎯 Підкріплення**
+        
+Навчання відбувається **без розміченого датасету** — лише через сигнал винагороди R(t) від середовища.""")
+    with col_d3:
+        st.success("""**🔄 Разом**
+        
+**DRL = Deep + RL**: нейромережа апроксимує оптимальну політику π*(s) яку неможливо знайти аналітично через розмір простору станів 114.""")
