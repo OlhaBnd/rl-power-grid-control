@@ -473,7 +473,7 @@ with tab1:
 
     else:
         st.info("👈 Вибери сценарій у бічній панелі та натисни **Запустити симуляцію**")
-        st.image("topology.png", caption="Приклад топології IEEE 14-bus")
+        st.image("outputs/topology.png", caption="Приклад топології IEEE 14-bus")
         
 with tab2:
     st.subheader("📊 Порівняння всіх 20 сценаріїв")
@@ -493,7 +493,7 @@ with tab2:
 
             env_ag  = make_grid_env()
             gym_ag  = make_gym_env(env_ag)
-            model_s = PPO.load("ppo_grid2op_v3", env=gym_ag)
+            model_s = PPO.load("models/ppo_grid2op_v3", env=gym_ag)
             obs_gym, _ = gym_ag.reset(options={"time serie id": sid})
             done, steps_ag = False, 0
             while not done and steps_ag < 300:
