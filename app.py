@@ -3,7 +3,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from env_setup import make_grid_env, make_gym_env
+from src.env_setup import make_grid_env, make_gym_env
 from stable_baselines3 import PPO
 
 st.set_page_config(
@@ -23,7 +23,7 @@ NODE_POS = {
 def load_model():
     env = make_grid_env()
     gym_env = make_gym_env(env)
-    model = PPO.load("ppo_grid2op_v3", env=gym_env)
+    model = PPO.load("models/ppo_grid2op_v3", env=gym_env)
     return model
 
 def draw_topology(obs, env, title, color_title):

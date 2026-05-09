@@ -1,6 +1,6 @@
 # evaluate.py
 import numpy as np
-from env_setup import make_grid_env, make_gym_env
+from src.env_setup import make_grid_env, make_gym_env
 from stable_baselines3 import PPO
 
 

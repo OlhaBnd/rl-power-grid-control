@@ -1,5 +1,5 @@
 # train.py
-from env_setup import make_grid_env, make_gym_env
+from src.env_setup import make_grid_env, make_gym_env
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 import numpy as np

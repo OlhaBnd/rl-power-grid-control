@@ -3,7 +3,7 @@ import grid2op
 from lightsim2grid import LightSimBackend
 from grid2op.Parameters import Parameters
 from grid2op.gym_compat import GymEnv, BoxGymObsSpace, DiscreteActSpace
-from reward import CustomReward
+from src.reward import CustomReward
 
 
 def make_grid_env(scenario_id=None):
