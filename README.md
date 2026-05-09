@@ -85,17 +85,17 @@ $$R(t) = \alpha \cdot S(t) - \beta \cdot O(t) - \gamma \cdot L(t) + \delta \cdot
 
 ## 📁 Структура проєкту
 rl-power-grid-control/
-env_setup.py      # Налаштування середовища Grid2Op
-reward.py         # Власна функція винагороди
-train.py          # Навчання PPO агента
-evaluate.py       # Тестування та порівняння методів
-visualize.py      # Графіки навчання
-topology.py       # Візуалізація топології мережі
-animation.py      # Анімація порівняння агентів
-demo.py           # Консольне демо
-app.py            # Веб-застосунок Streamlit
-find_hard.py      # Пошук складних сценаріїв
-README.md
+├── env_setup.py      # Налаштування середовища Grid2Op
+├── reward.py         # Власна функція винагороди
+├── train.py          # Навчання PPO агента
+├── evaluate.py       # Тестування та порівняння методів
+├── visualize.py      # Графіки навчання
+├── topology.py       # Візуалізація топології мережі
+├── animation.py      # Анімація порівняння агентів
+├── demo.py           # Консольне демо
+├── app.py            # Веб-застосунок Streamlit
+├── find_hard.py      # Пошук складних сценаріїв
+└── README.md
 
 ---
 
