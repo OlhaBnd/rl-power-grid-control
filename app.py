@@ -404,10 +404,12 @@ with tab1:
             st.pyplot(fig_grd)
         with col_ag:
             fig_ag = draw_topology(obs_ag, env_ag, "PPO агент", '#4CAF50')
-            if done_ag:
-                st.warning("⚠️ Агент не зміг утримати")
+            if survived_ag > survived_no:
+                st.success(f"✅ PPO: {survived_ag} кроків")
+            elif survived_ag == survived_no:
+                st.info(f"ℹ️ PPO: {survived_ag} кроків")
             else:
-                st.success(f"✅ PPO: {survived_ag} кроків!")
+                st.warning(f"⚠️ PPO: {survived_ag} кроків")
             st.pyplot(fig_ag)
 
         st.divider()
