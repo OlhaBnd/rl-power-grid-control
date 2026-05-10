@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from src.env_setup import make_grid_env, make_gym_env
 from stable_baselines3 import PPO
+import json
+import os
 
 st.set_page_config(
     page_title="RL Керування Енергомережею",
@@ -474,71 +476,93 @@ with tab1:
     else:
         st.info("👈 Вибери сценарій у бічній панелі та натисни **Запустити симуляцію**")
         st.image("outputs/topology.png", caption="Приклад топології IEEE 14-bus")
-        
+
 with tab2:
     st.subheader("📊 Порівняння всіх 20 сценаріїв")
 
-    @st.cache_resource
-    def run_all_scenarios():
-        rows = []
-        progress = st.progress(0, text="Тестування сценаріїв...")
+    cache_file = "outputs/benchmark_results.json"
 
-        for sid in range(20):
-            env_base = make_grid_env()
-            obs = env_base.reset(options={"time serie id": sid})
-            done, steps_no = False, 0
-            while not done and steps_no < 300:
-                obs, _, done, _ = env_base.step(env_base.action_space({}))
-                steps_no += 1
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        load_cache = st.button("⚡ Завантажити збережені результати",
+                               type="primary", use_container_width=True)
+    with col_btn2:
+        run_fresh = st.button("🔄 Перерахувати заново (~3 хв)",
+                              use_container_width=True)
 
-            env_ag  = make_grid_env()
-            gym_ag  = make_gym_env(env_ag)
-            model_s = PPO.load("models/ppo_grid2op_v3", env=gym_ag)
-            obs_gym, _ = gym_ag.reset(options={"time serie id": sid})
-            done, steps_ag = False, 0
-            while not done and steps_ag < 300:
-                act, _ = model_s.predict(obs_gym, deterministic=True)
-                obs_gym, _, term, trunc, _ = gym_ag.step(act)
-                done = term or trunc
-                steps_ag += 1
+    if load_cache and os.path.exists(cache_file):
+        with open(cache_file, "r", encoding="utf-8") as f:
+            rows = json.load(f)
+        st.success("✅ Результати завантажено миттєво!")
+        show_results = True
 
-            env_grd = make_grid_env()
-            obs_grd = env_grd.reset(options={"time serie id": sid})
-            done, steps_grd = False, 0
-            while not done and steps_grd < 300:
-                rho = obs_grd.rho.copy()
-                rho[~obs_grd.line_status] = 0
-                if np.max(rho) > 0.9:
-                    act_grd = env_grd.action_space(
-                        {"set_line_status": [(int(np.argmax(rho)), -1)]}
-                    )
-                else:
-                    act_grd = env_grd.action_space({})
-                obs_grd, _, done, _ = env_grd.step(act_grd)
-                steps_grd += 1
+    elif run_fresh:
+        with st.spinner("Тестування всіх сценаріїв (~3 хвилини)..."):
+            rows = []
+            progress = st.progress(0)
+            for sid in range(20):
+                env_base = make_grid_env()
+                obs = env_base.reset(options={"time serie id": sid})
+                done, steps_no = False, 0
+                while not done and steps_no < 300:
+                    obs, _, done, _ = env_base.step(env_base.action_space({}))
+                    steps_no += 1
 
-            label = scenario_labels[sid].split(" — ")[1]
-            rows.append({
-                "Сценарій": f"#{sid}",
-                "Тип": label,
-                "Без агента": steps_no,
-                "Greedy": steps_grd,
-                "PPO агент": steps_ag,
-                "PPO vs без агента": f"{steps_ag/max(steps_no,1):.1f}x",
-                "PPO vs Greedy": f"{steps_ag/max(steps_grd,1):.1f}x",
-            })
-            progress.progress((sid+1)/20,
-                              text=f"Тестування сценарію {sid+1}/20...")
+                env_ag  = make_grid_env()
+                gym_ag  = make_gym_env(env_ag)
+                model_s = PPO.load("models/ppo_grid2op_v3", env=gym_ag)
+                obs_gym, _ = gym_ag.reset(options={"time serie id": sid})
+                done, steps_ag = False, 0
+                while not done and steps_ag < 300:
+                    act, _ = model_s.predict(obs_gym, deterministic=True)
+                    obs_gym, _, term, trunc, _ = gym_ag.step(act)
+                    done = term or trunc
+                    steps_ag += 1
 
-        progress.empty()
-        return rows
+                env_grd = make_grid_env()
+                obs_grd = env_grd.reset(options={"time serie id": sid})
+                done, steps_grd = False, 0
+                while not done and steps_grd < 300:
+                    rho = obs_grd.rho.copy()
+                    rho[~obs_grd.line_status] = 0
+                    if np.max(rho) > 0.9:
+                        act_grd = env_grd.action_space(
+                            {"set_line_status": [(int(np.argmax(rho)), -1)]}
+                        )
+                    else:
+                        act_grd = env_grd.action_space({})
+                    obs_grd, _, done, _ = env_grd.step(act_grd)
+                    steps_grd += 1
 
-    if st.button("🔄 Запустити порівняння всіх сценаріїв",
-                 type="primary", use_container_width=True):
-        with st.spinner("Це займе ~2 хвилини..."):
-            rows = run_all_scenarios()
+                label = scenario_labels[sid].split(" — ")[1]
+                rows.append({
+                    "scenario_id": sid,
+                    "type": label,
+                    "no_agent": steps_no,
+                    "greedy": steps_grd,
+                    "ppo": steps_ag,
+                    "ppo_vs_no": round(steps_ag/max(steps_no,1), 2),
+                    "ppo_vs_greedy": round(steps_ag/max(steps_grd,1), 2),
+                })
+                progress.progress((sid+1)/20)
 
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(rows, f, ensure_ascii=False, indent=2)
+            st.success("✅ Результати збережені!")
+        show_results = True
+
+    else:
+        show_results = False
+        if not os.path.exists(cache_file):
+            st.warning("⚠️ Збережених результатів немає. Натисни 'Перерахувати заново'")
+        else:
+            st.info("Натисни '⚡ Завантажити збережені результати' для миттєвого завантаження")
+
+    if show_results and rows:
         df = pd.DataFrame(rows)
+        df.columns = ["Сценарій", "Тип", "Без агента",
+                      "Greedy", "PPO агент",
+                      "PPO vs без агента", "PPO vs Greedy"]
         st.dataframe(df, use_container_width=True, hide_index=True)
 
         fig_all, ax_all = plt.subplots(figsize=(12, 5))
@@ -546,15 +570,12 @@ with tab2:
         ax_all.set_facecolor('#1a1a2e')
         x = np.arange(20)
         w = 0.25
-        no_vals  = [r["Без агента"] for r in rows]
-        grd_vals = [r["Greedy"] for r in rows]
-        ppo_vals = [r["PPO агент"] for r in rows]
-        ax_all.bar(x - w, no_vals,  w, label='Без агента',
-                   color='#EF5350', alpha=0.85)
-        ax_all.bar(x,     grd_vals, w, label='Greedy',
-                   color='#FF9800', alpha=0.85)
-        ax_all.bar(x + w, ppo_vals, w, label='PPO агент',
-                   color='#42A5F5', alpha=0.85)
+        no_vals  = [r["no_agent"] if isinstance(r, dict) else r[2] for r in rows]
+        grd_vals = [r["greedy"]   if isinstance(r, dict) else r[3] for r in rows]
+        ppo_vals = [r["ppo"]      if isinstance(r, dict) else r[4] for r in rows]
+        ax_all.bar(x-w, no_vals,  w, label='Без агента',  color='#EF5350', alpha=0.85)
+        ax_all.bar(x,   grd_vals, w, label='Greedy',      color='#FF9800', alpha=0.85)
+        ax_all.bar(x+w, ppo_vals, w, label='PPO агент',   color='#42A5F5', alpha=0.85)
         ax_all.set_xlabel('Сценарій', color='white')
         ax_all.set_ylabel('Кроків виживання', color='white')
         ax_all.set_title('Порівняння всіх 20 сценаріїв',
@@ -576,9 +597,6 @@ with tab2:
         c2.metric("Сер. кроків Greedy",     f"{avg_grd:.0f}")
         c3.metric("Сер. кроків PPO",        f"{avg_ppo:.0f}",
                   delta=f"+{avg_ppo-avg_no:.0f} vs без агента")
-    else:
-        st.info("Натисни кнопку щоб запустити порівняння всіх 20 сценаріїв. "
-                "Займе ~2 хвилини.")
         
 with tab3:
     st.subheader("🏗️ Архітектура системи")
