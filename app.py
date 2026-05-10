@@ -144,7 +144,7 @@ with st.sidebar:
     run_button = st.button("▶️ Запустити симуляцію", type="primary",
                            use_container_width=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["🔬 Симуляція", "📊 Порівняння сценаріїв", "🏗️ Архітектура", "🕹️ Ручне керування"])
+tab1, tab2, tab3, tab4 = st.tabs(["Симуляція", "Порівняння сценаріїв", "Архітектура", "Ручне керування"])
 
 with tab1:
     if run_button:
@@ -315,7 +315,7 @@ with tab1:
             "Каскадна аварія (N-1-1)": f"каскад: Лінія {disabled_lines_cascade[0]} → Лінія {disabled_lines_cascade[1]}" if disabled_lines_cascade else ""
         }.get(attack_type, "")
 
-        st.subheader(f"📊 Результати симуляції — {attack_label}")
+        st.subheader(f"Результати симуляції — {attack_label}")
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Без агента", f"{survived_no} кроків")
         col2.metric("Greedy агент", f"{survived_grd} кроків",
@@ -326,7 +326,7 @@ with tab1:
                     f"{survived_ag/max(survived_grd,1):.1f}x",
                     delta="PPO кращий" if survived_ag > survived_grd else "однаково")
 
-        st.subheader("📉 Детальні метрики")
+        st.subheader("Детальні метрики")
         m1, m2, m3, m4 = st.columns(4)
         avg_rho_no  = np.mean(rho_history_no)  if rho_history_no  else 0
         avg_rho_grd = np.mean(rho_history_grd) if rho_history_grd else 0
@@ -346,7 +346,7 @@ with tab1:
         st.divider()
 
         # ── ЖУРНАЛ ПОДІЙ ───────────────────────────────
-        st.subheader("📋 Журнал дій PPO агента")
+        st.subheader("Журнал дій PPO агента")
         if event_log:
             df_log = pd.DataFrame(event_log)
             df_log.columns = ['Крок', 'Лінія', 'Дія', 'Макс. завантаженість']
@@ -362,7 +362,7 @@ with tab1:
         st.divider()
 
         # ── ГРАФІК ЗАВАНТАЖЕНОСТІ ──────────────────────
-        st.subheader("📈 Максимальна завантаженість ліній")
+        st.subheader("Максимальна завантаженість ліній")
         fig_rho, ax_rho = plt.subplots(figsize=(10, 3))
         fig_rho.patch.set_facecolor('#1a1a2e')
         ax_rho.set_facecolor('#1a1a2e')
@@ -388,7 +388,7 @@ with tab1:
         st.divider()
 
         # ── ТОПОЛОГІЯ ──────────────────────────────────
-        st.subheader("🗺️ Топологія мережі (фінальний стан)")
+        st.subheader("Топологія мережі (фінальний стан)")
         col_no, col_grd, col_ag = st.columns(3)
         with col_no:
             fig_no = draw_topology(obs_no, env_no, "Без агента", '#EF5350')
@@ -415,7 +415,7 @@ with tab1:
         st.divider()
 
         # ── КАРТА РИЗИКІВ ──────────────────────────────
-        st.subheader("🔥 Карта ризиків вузлів")
+        st.subheader("Карта ризиків вузлів")
         node_risk = np.zeros(14)
         node_risk_count = np.zeros(14)
         for lid in range(env_ag.n_line):
@@ -480,22 +480,22 @@ with tab1:
         st.image("outputs/topology.png", caption="Приклад топології IEEE 14-bus")
 
 with tab2:
-    st.subheader("📊 Порівняння всіх 20 сценаріїв")
+    st.subheader("Порівняння всіх 20 сценаріїв")
 
     cache_file = "outputs/benchmark_results.json"
 
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        load_cache = st.button("⚡ Завантажити збережені результати",
+        load_cache = st.button("Завантажити збережені результати",
                                type="primary", use_container_width=True)
     with col_btn2:
-        run_fresh = st.button("🔄 Перерахувати заново (~3 хв)",
+        run_fresh = st.button("Перерахувати заново (~3 хв)",
                               use_container_width=True)
 
     if load_cache and os.path.exists(cache_file):
         with open(cache_file, "r", encoding="utf-8") as f:
             rows = json.load(f)
-        st.success("✅ Результати завантажено миттєво!")
+        st.success("Результати завантажено миттєво!")
         show_results = True
 
     elif run_fresh:
@@ -550,15 +550,15 @@ with tab2:
 
             with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(rows, f, ensure_ascii=False, indent=2)
-            st.success("✅ Результати збережені!")
+            st.success("Результати збережені!")
         show_results = True
 
     else:
         show_results = False
         if not os.path.exists(cache_file):
-            st.warning("⚠️ Збережених результатів немає. Натисни 'Перерахувати заново'")
+            st.warning("Збережених результатів немає. Натисни 'Перерахувати заново'")
         else:
-            st.info("Натисни '⚡ Завантажити збережені результати' для миттєвого завантаження")
+            st.info("Натисни ' Завантажити збережені результати' для миттєвого завантаження")
 
     if show_results and rows:
         df = pd.DataFrame(rows)
@@ -601,7 +601,7 @@ with tab2:
                   delta=f"+{avg_ppo-avg_no:.0f} vs без агента")
         
 with tab3:
-    st.subheader("🏗️ Архітектура системи")
+    st.subheader("Архітектура системи")
 
     col_l, col_r = st.columns(2)
 
@@ -665,7 +665,7 @@ with tab3:
 | Параметрів | ~30 000 |
         """)       
 with tab4:
-    st.subheader("🕹️ Ручне керування мережею")
+    st.subheader("Ручне керування мережею")
     st.markdown("Керуй мережею самостійно і порівняй результат з PPO агентом")
 
     col_ctrl_l, col_ctrl_r = st.columns([1, 2])
@@ -769,18 +769,18 @@ with tab4:
                     )
 
             # ── РЕЗУЛЬТАТИ ─────────────────────────────
-            st.markdown("### 📊 Результат")
+            st.markdown("### Результат")
             r1, r2, r3 = st.columns(3)
             r1.metric("Твій результат", f"{steps_man} кроків")
             r2.metric("PPO агент", f"{steps_ppo} кроків")
 
             if steps_ppo > steps_man:
                 diff = steps_ppo - steps_man
-                r3.metric("Переможець", "🤖 PPO",
+                r3.metric("Переможець", "PPO",
                           delta=f"+{diff} кроків")
             elif steps_man > steps_ppo:
                 diff = steps_man - steps_ppo
-                r3.metric("Переможець", "👤 Ти",
+                r3.metric("Переможець", "Ти",
                           delta=f"+{diff} кроків")
             else:
                 r3.metric("Переможець", "🤝 Нічия", delta="0 кроків")
@@ -811,7 +811,7 @@ with tab4:
             st.pyplot(fig_man)
 
             # ── ТОПОЛОГІЯ ──────────────────────────────
-            st.markdown("### 🗺️ Топологія")
+            st.markdown("### Топологія")
             col_m1, col_m2 = st.columns(2)
 
             with col_m1:
@@ -820,9 +820,9 @@ with tab4:
                     "Твоє керування", '#EF5350'
                 )
                 if done_man:
-                    st.error("⚡ БЛЕКАУТ!")
+                    st.error("БЛЕКАУТ!")
                 else:
-                    st.info(f"👤 Ти: {steps_man} кроків")
+                    st.info(f"Ти: {steps_man} кроків")
                 st.pyplot(fig_m1)
 
             with col_m2:
@@ -831,9 +831,9 @@ with tab4:
                     "PPO агент", '#4CAF50'
                 )
                 if done_ppo:
-                    st.warning("⚠️ PPO не зміг утримати")
+                    st.warning("PPO не зміг утримати")
                 else:
-                    st.success(f"🤖 PPO: {steps_ppo} кроків")
+                    st.success(f"PPO: {steps_ppo} кроків")
                 st.pyplot(fig_m2)
 
         else:
