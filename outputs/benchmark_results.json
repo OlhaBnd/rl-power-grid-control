@@ -1,0 +1,182 @@
+[
+  {
+    "scenario_id": 0,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 1,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 2,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 150.0
+  },
+  {
+    "scenario_id": 2,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 3,
+    "type": "критичний ⚠️",
+    "no_agent": 3,
+    "greedy": 1,
+    "ppo": 3,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 3.0
+  },
+  {
+    "scenario_id": 4,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 5,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 6,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 2,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 150.0
+  },
+  {
+    "scenario_id": 7,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 8,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 9,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 10,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 11,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 12,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 13,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 14,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 15,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 16,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 17,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 128,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 2.34
+  },
+  {
+    "scenario_id": 18,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 300,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.0
+  },
+  {
+    "scenario_id": 19,
+    "type": "стабільний",
+    "no_agent": 300,
+    "greedy": 228,
+    "ppo": 300,
+    "ppo_vs_no": 1.0,
+    "ppo_vs_greedy": 1.32
+  }
+]
