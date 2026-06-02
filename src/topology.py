@@ -102,10 +102,7 @@ def draw_grid(ax, obs, env, title="Стан мережі"):
     ax.set_ylim(-0.5, 4.2)
     ax.axis('off')
 
-
-# ============================
 # ГОЛОВНА ДЕМОНСТРАЦІЯ
-# ============================
 param = Parameters()
 param.NO_OVERFLOW_DISCONNECTION = False
 param.NB_TIMESTEP_OVERFLOW_ALLOWED = 2
